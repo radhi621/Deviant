@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import useSpeechRecognition from '../hooks/useSpeechRecognition';
 import './Chat.css';
 
 const Chat = () => {
@@ -16,10 +17,73 @@ const Chat = () => {
   const [error, setError] = useState(null);
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
+  const {
+    isListening,
+    transcript,
+    interimTranscript,
+    error: speechError,
+    isSupported: isSpeechSupported,
+    startListening,
+    stopListening,
+    resetTranscript,
+  } = useSpeechRecognition();
 
-  const GEMINI_API_KEY = process.env.REACT_APP_GEMINI_API_KEY;
-  const GEMINI_MODEL = process.env.REACT_APP_GEMINI_MODEL || 'gemini-2.5-flash';
-  const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+  // Auto-load models from environment variables
+  const loadModelsFromEnv = () => {
+    const loadedModels = {};
+
+    // Gemini Model
+    if (process.env.REACT_APP_GEMINI_API_KEY) {
+      loadedModels.gemini = {
+        id: 'gemini',
+        name: 'Gemini',
+        displayName: process.env.REACT_APP_GEMINI_MODEL || 'gemini-2.5-flash',
+        apiKey: process.env.REACT_APP_GEMINI_API_KEY,
+        model: process.env.REACT_APP_GEMINI_MODEL || 'gemini-2.5-flash',
+        type: 'gemini',
+        icon: '☁️',
+      };
+    }
+
+    // Ollama Model
+    if (process.env.REACT_APP_OLLAMA_MODEL) {
+      loadedModels.ollama = {
+        id: 'ollama',
+        name: 'Ollama',
+        displayName: process.env.REACT_APP_OLLAMA_MODEL,
+        apiUrl: process.env.REACT_APP_OLLAMA_API_URL || 'http://localhost:11434',
+        model: process.env.REACT_APP_OLLAMA_MODEL,
+        type: 'ollama',
+        icon: '🖥️',
+      };
+    }
+
+    // Claude Model (example of adding more)
+    if (process.env.REACT_APP_CLAUDE_API_KEY) {
+      loadedModels.claude = {
+        id: 'claude',
+        name: 'Claude',
+        displayName: process.env.REACT_APP_CLAUDE_MODEL || 'claude-3-opus-20240229',
+        apiKey: process.env.REACT_APP_CLAUDE_API_KEY,
+        model: process.env.REACT_APP_CLAUDE_MODEL || 'claude-3-opus-20240229',
+        type: 'claude',
+        icon: '🎭',
+      };
+    }
+
+    // Add more models as needed...
+
+    return loadedModels;
+  };
+
+  const models = loadModelsFromEnv();
+
+  const [activeModelId, setActiveModelId] = useState(() => {
+    // Set default to first available model
+    const modelKeys = Object.keys(models);
+    return modelKeys.length > 0 ? modelKeys[0] : null;
+  });
+  const activeModel = models[activeModelId];
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -34,6 +98,14 @@ const Chat = () => {
     }
   }, [inputValue]);
 
+  // Update input when speech transcript changes
+  useEffect(() => {
+    if (transcript) {
+      setInputValue((prev) => prev + transcript);
+      resetTranscript();
+    }
+  }, [transcript, resetTranscript]);
+
   const getCurrentTime = () => {
     const now = new Date();
     const hours = now.getHours();
@@ -45,9 +117,25 @@ const Chat = () => {
   };
 
   const getAIResponse = async (userMessage) => {
-    if (!GEMINI_API_KEY) {
+    if (!activeModel) {
+      throw new Error('No AI model configured. Please add model configuration to your .env file.');
+    }
+
+    if (activeModel.type === 'ollama') {
+      return getOllamaResponse(userMessage);
+    } else if (activeModel.type === 'gemini') {
+      return getGeminiResponse(userMessage);
+    } else {
+      throw new Error(`Unknown model type: ${activeModel.type}`);
+    }
+  };
+
+  const getGeminiResponse = async (userMessage) => {
+    if (!activeModel.apiKey) {
       throw new Error('API Key is not configured. Please set REACT_APP_GEMINI_API_KEY in .env file');
     }
+
+    const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${activeModel.model}:generateContent?key=${activeModel.apiKey}`;
 
     const requestBody = {
       contents: [
@@ -82,11 +170,50 @@ const Chat = () => {
       throw new Error(errorMessage);
     }
 
-    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-      throw new Error('Unexpected response format from API');
+    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content || !data.candidates[0].content.parts) {
+      console.error('Unexpected API response format:', data);
+      throw new Error('Unexpected response format from API. Please check your API key and try again.');
     }
 
-    return data.candidates[0].content.parts[0].text;
+    const content = data.candidates[0].content.parts[0];
+    if (!content || !content.text) {
+      throw new Error('No text content in API response');
+    }
+
+    return content.text;
+  };
+
+  const getOllamaResponse = async (userMessage) => {
+    try {
+      const response = await fetch(`${activeModel.apiUrl}/api/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: activeModel.model,
+          prompt: userMessage,
+          stream: false,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Ollama API Error: ${response.status} - Make sure Ollama is running on ${activeModel.apiUrl}`);
+      }
+
+      const data = await response.json();
+
+      if (!data.response) {
+        throw new Error('No response from Ollama model');
+      }
+
+      return data.response.trim();
+    } catch (err) {
+      if (err instanceof TypeError) {
+        throw new Error(`Cannot connect to Ollama on ${activeModel.apiUrl}. Make sure Ollama is running.`);
+      }
+      throw err;
+    }
   };
 
   const handleSendMessage = async () => {
@@ -115,7 +242,7 @@ const Chat = () => {
     try {
       const aiResponse = await getAIResponse(text);
 
-      // Remove typing indicator and add AI response
+      // Remove typing indicator and add AI response with model info
       setMessages((prev) => [
         ...prev.filter((msg) => msg.id !== typingId),
         {
@@ -123,6 +250,9 @@ const Chat = () => {
           text: aiResponse,
           isUser: false,
           timestamp: new Date(),
+          modelId: activeModelId,
+          modelName: activeModel.name,
+          modelDisplayName: activeModel.displayName,
         },
       ]);
     } catch (err) {
@@ -180,19 +310,37 @@ const Chat = () => {
                 </div>
                 <div className="chat-title">
                   <h2>AI Assistant</h2>
-                  <span className="chat-status">Online</span>
+                  <span className="chat-status">
+                    {activeModel ? `${activeModel.icon} ${activeModel.name} • Online` : '⚠️ No model configured'}
+                  </span>
                 </div>
               </div>
-              <button
-                className="close-chat"
-                onClick={() => setIsOpen(false)}
-                title="Close chat"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
+              <div className="chat-header-controls">
+                {Object.keys(models).length > 0 && (
+                  <div className="model-selector">
+                    {Object.values(models).map((model) => (
+                      <button
+                        key={model.id}
+                        className={`model-button ${activeModelId === model.id ? 'active' : ''}`}
+                        onClick={() => setActiveModelId(model.id)}
+                        title={`Switch to ${model.name}`}
+                      >
+                        {model.icon} {model.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <button
+                  className="close-chat"
+                  onClick={() => setIsOpen(false)}
+                  title="Close chat"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
             </div>
 
             {/* Chat Messages */}
@@ -232,7 +380,12 @@ const Chat = () => {
                     ) : (
                       <>
                         <div className="message-text">{message.text}</div>
-                        <div className="message-time">{getCurrentTime()}</div>
+                        <div className="message-footer">
+                          {message.modelName && (
+                            <span className="message-model">{message.modelName} • {message.modelDisplayName}</span>
+                          )}
+                          <div className="message-time">{getCurrentTime()}</div>
+                        </div>
                       </>
                     )}
                   </div>
@@ -243,17 +396,43 @@ const Chat = () => {
 
             {/* Chat Input */}
             <div className="chat-input-container">
+              {interimTranscript && (
+                <div className="interim-transcript">
+                  <span className="listening-indicator">🎤 Listening...</span>
+                  <span>{interimTranscript}</span>
+                </div>
+              )}
+              {speechError && (
+                <div className="speech-error">
+                  <span>Error: {speechError}</span>
+                </div>
+              )}
               <div className="chat-input-wrapper">
                 <textarea
                   ref={textareaRef}
                   className="chat-input"
-                  placeholder="Type your message..."
+                  placeholder="Type your message or use voice..."
                   rows="1"
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={handleKeyDown}
                   disabled={isLoading}
                 />
+                {isSpeechSupported && (
+                  <button
+                    className={`voice-button ${isListening ? 'listening' : ''}`}
+                    onClick={isListening ? stopListening : startListening}
+                    disabled={isLoading}
+                    title={isListening ? 'Stop listening' : 'Start voice input'}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 1a3 3 0 0 0-3 3v12a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                      <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                      <line x1="12" y1="19" x2="12" y2="23"></line>
+                      <line x1="8" y1="23" x2="16" y2="23"></line>
+                    </svg>
+                  </button>
+                )}
                 <button
                   className="send-button"
                   onClick={handleSendMessage}

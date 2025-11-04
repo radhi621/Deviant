@@ -36,54 +36,116 @@ body {
   height: 100%;
   overflow: hidden;
   z-index: 0;
-  background: #000000;
+  background: radial-gradient(ellipse at center, #0a0e1a 0%, #000000 100%);
 }
 
-/* Diagonal light overlay */
+/* Deep space background glow */
 .star-background::before {
   content: '';
   position: absolute;
-  top: -20%;
-  left: -30%;
-  width: 60%;
-  height: 140%;
-  background: linear-gradient(135deg, rgba(10, 12, 18, 0.3) 0%, rgba(8, 10, 15, 0.2) 30%, rgba(5, 7, 12, 0.1) 60%, transparent 100%);
-  transform: rotate(-25deg);
-  z-index: 1;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: 
+    radial-gradient(circle at 20% 50%, rgba(0, 150, 200, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(100, 50, 200, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 40% 80%, rgba(0, 100, 150, 0.05) 0%, transparent 50%);
+  animation: space-glow 15s ease-in-out infinite;
+  z-index: 0;
 }
 
-/* Massive starfield - Layer 1 */
+@keyframes space-glow {
+  0%, 100% {
+    transform: scale(1) translate(0, 0);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.1) translate(-10px, -10px);
+    opacity: 0.7;
+  }
+}
+
+/* Massive starfield - Layer 1 (Small bright stars) */
 .star-background::after {
   content: '';
   position: absolute;
-  width: 2px;
-  height: 2px;
-  background: white;
+  width: 1px;
+  height: 1px;
+  background: #ffffff;
   border-radius: 50%;
-  box-shadow: 1527px 644px #fff, 1191px 697px #fff, 1824px 126px #fff, 1042px 743px #fff,
-    284px 566px #fff, 1730px 407px #fff, 575px 206px #fff, 1134px 418px #fff,
-    1864px 537px #fff, 728px 88px #fff, 461px 704px #fff, 1372px 239px #fff,
-    302px 433px #fff, 1615px 375px #fff, 897px 651px #fff, 1249px 109px #fff,
-    1506px 791px #fff, 383px 325px #fff, 1683px 568px #fff, 1026px 201px #fff,
-    729px 742px #fff, 1391px 482px #fff, 608px 119px #fff, 1153px 364px #fff,
-    1887px 629px #fff, 495px 537px #fff, 1266px 88px #fff, 812px 461px #fff,
-    359px 703px #fff, 1549px 234px #fff, 1101px 592px #fff, 672px 157px #fff,
-    1434px 719px #fff, 923px 396px #fff, 1782px 512px #fff, 546px 269px #fff,
-    1209px 683px #fff, 867px 43px #fff, 1641px 428px #fff, 418px 574px #fff,
-    1314px 196px #fff, 1058px 741px #fff, 691px 309px #fff, 1476px 623px #fff,
-    834px 187px #fff, 1723px 549px #fff, 503px 412px #fff, 1142px 76px #fff,
-    1595px 698px #fff, 769px 531px #fff, 1387px 264px #fff, 621px 647px #fff,
-    1809px 483px #fff, 954px 128px #fff, 1261px 715px #fff, 487px 359px #fff;
-  animation: twinkle-stars 3s ease-in-out infinite;
+  box-shadow: 
+    150px 50px #fff, 300px 120px #fff, 450px 80px #fff, 600px 150px #fff,
+    750px 30px #fff, 900px 110px #fff, 1050px 70px #fff, 1200px 140px #fff,
+    1350px 40px #fff, 1500px 130px #fff, 1650px 90px #fff, 1800px 160px #fff,
+    50px 200px #fff, 200px 250px #fff, 350px 280px #fff, 500px 220px #fff,
+    650px 300px #fff, 800px 240px #fff, 950px 270px #fff, 1100px 310px #fff,
+    1250px 230px #fff, 1400px 290px #fff, 1550px 260px #fff, 1700px 320px #fff,
+    1850px 200px #fff, 100px 400px #fff, 250px 430px #fff, 400px 460px #fff,
+    550px 410px #fff, 700px 450px #fff, 850px 420px #fff, 1000px 470px #fff,
+    1150px 400px #fff, 1300px 440px #fff, 1450px 480px #fff, 1600px 410px #fff,
+    1750px 460px #fff, 1900px 430px #fff, 75px 600px #fff, 225px 650px #fff,
+    375px 620px #fff, 525px 680px #fff, 675px 610px #fff, 825px 670px #fff,
+    975px 630px #fff, 1125px 690px #fff, 1275px 620px #fff, 1425px 680px #fff,
+    1575px 650px #fff, 1725px 710px #fff, 1875px 630px #fff, 125px 800px #fff,
+    275px 820px #fff, 425px 850px #fff, 575px 810px #fff, 725px 870px #fff,
+    875px 820px #fff, 1025px 880px #fff, 1175px 810px #fff, 1325px 860px #fff,
+    1475px 840px #fff, 1625px 900px #fff, 1775px 820px #fff, 1925px 880px #fff,
+    /* More stars with varying sizes and opacity */
+    30px 100px 0 0 rgba(255, 255, 255, 0.8),
+    80px 150px 0 0 rgba(200, 220, 255, 0.6),
+    130px 200px 0 0 rgba(150, 200, 255, 0.7),
+    180px 300px 0 0 rgba(255, 255, 200, 0.5);
+  animation: twinkle-stars 4s ease-in-out infinite;
+  filter: drop-shadow(0 0 1px rgba(100, 200, 255, 0.5));
+}
+
+/* Layer 2: Larger glowing stars (cyan/blue) */
+.star-background {
+  --star-glow-1: 200px 150px;
+  --star-glow-2: 450px 300px;
+  --star-glow-3: 800px 250px;
+  --star-glow-4: 1100px 400px;
+  --star-glow-5: 1500px 200px;
+  --star-glow-6: 300px 600px;
+  --star-glow-7: 700px 700px;
+  --star-glow-8: 1300px 750px;
+}
+
+.star-background::before {
+  box-shadow:
+    200px 150px 10px 2px rgba(0, 150, 255, 0.6),
+    450px 300px 12px 3px rgba(100, 200, 255, 0.5),
+    800px 250px 8px 1px rgba(0, 180, 220, 0.7),
+    1100px 400px 15px 4px rgba(50, 150, 255, 0.4),
+    1500px 200px 10px 2px rgba(0, 200, 255, 0.6),
+    300px 600px 12px 3px rgba(100, 150, 255, 0.5),
+    700px 700px 8px 1px rgba(0, 170, 200, 0.7),
+    1300px 750px 14px 3px rgba(50, 180, 255, 0.4),
+    150px 400px 10px 2px rgba(0, 160, 240, 0.5),
+    600px 100px 12px 3px rgba(80, 180, 255, 0.6),
+    1200px 600px 9px 2px rgba(0, 190, 220, 0.5);
 }
 
 @keyframes twinkle-stars {
   0%,
   100% {
-    opacity: 0.95;
+    opacity: 0.9;
+    filter: drop-shadow(0 0 2px rgba(100, 200, 255, 0.8)) 
+            drop-shadow(0 0 4px rgba(0, 150, 255, 0.4));
+  }
+  25% {
+    opacity: 0.5;
+    filter: drop-shadow(0 0 1px rgba(100, 200, 255, 0.3));
   }
   50% {
-    opacity: 0.4;
+    opacity: 1;
+    filter: drop-shadow(0 0 4px rgba(100, 200, 255, 1)) 
+            drop-shadow(0 0 8px rgba(0, 150, 255, 0.6));
+  }
+  75% {
+    opacity: 0.6;
+    filter: drop-shadow(0 0 2px rgba(100, 200, 255, 0.5));
   }
 }
 
@@ -188,8 +250,10 @@ body {
 .ai-brain-icon {
   width: 80%;
   height: 80%;
-  filter: drop-shadow(0 0 15px rgba(0, 217, 255, 0.8));
-  animation: brain-float 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 15px rgba(0, 217, 255, 0.8))
+          drop-shadow(0 0 30px rgba(0, 200, 255, 0.4))
+          drop-shadow(0 0 45px rgba(0, 150, 200, 0.2));
+  animation: brain-float 3s ease-in-out infinite, brain-glow 2.5s ease-in-out infinite;
 }
 
 .brain-path,
@@ -197,6 +261,7 @@ body {
   stroke: #00d9ff;
   stroke-linecap: round;
   stroke-linejoin: round;
+  filter: drop-shadow(0 0 2px rgba(0, 217, 255, 0.6));
 }
 
 @keyframes pulse-ring {
@@ -216,10 +281,32 @@ body {
 @keyframes brain-float {
   0%,
   100% {
-    transform: translateY(0px);
+    transform: translateY(0px) rotateZ(-2deg);
+  }
+  25% {
+    transform: translateY(-12px) rotateZ(-1deg);
   }
   50% {
-    transform: translateY(-10px);
+    transform: translateY(-15px) rotateZ(0deg);
+  }
+  75% {
+    transform: translateY(-10px) rotateZ(1deg);
+  }
+}
+
+@keyframes brain-glow {
+  0%,
+  100% {
+    opacity: 1;
+    filter: drop-shadow(0 0 15px rgba(0, 217, 255, 0.8))
+            drop-shadow(0 0 30px rgba(0, 200, 255, 0.4))
+            drop-shadow(0 0 45px rgba(0, 150, 200, 0.2));
+  }
+  50% {
+    opacity: 0.95;
+    filter: drop-shadow(0 0 20px rgba(0, 217, 255, 1))
+            drop-shadow(0 0 40px rgba(0, 200, 255, 0.6))
+            drop-shadow(0 0 60px rgba(0, 150, 200, 0.3));
   }
 }
 
