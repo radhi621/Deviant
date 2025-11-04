@@ -47,50 +47,68 @@ const Chat = () => {
     isSupported: isTextToSpeechSupported,
   } = useTextToSpeech();
 
-  // Auto-load models from environment variables
+  // Auto-load models from environment variables - fully dynamic
   const loadModelsFromEnv = () => {
     const loadedModels = {};
+    const modelIds = process.env.REACT_APP_MODELS?.split(',').map(id => id.trim()).filter(Boolean) || [];
 
-    // Gemini Model
-    if (process.env.REACT_APP_GEMINI_API_KEY) {
-      loadedModels.gemini = {
-        id: 'gemini',
-        name: 'Gemini',
-        displayName: process.env.REACT_APP_GEMINI_MODEL || 'gemini-2.5-flash',
-        apiKey: process.env.REACT_APP_GEMINI_API_KEY,
-        model: process.env.REACT_APP_GEMINI_MODEL || 'gemini-2.5-flash',
-        type: 'gemini',
-        icon: '☁️',
+    modelIds.forEach(modelId => {
+      const prefix = `REACT_APP_MODEL_${modelId.toUpperCase()}`;
+      
+      // Get required base configuration
+      const modelType = process.env[`${prefix}_TYPE`];
+      const modelName = process.env[`${prefix}_NAME`];
+      const modelIcon = process.env[`${prefix}_ICON`] || '🤖';
+      
+      if (!modelType || !modelName) {
+        console.warn(`Skipping model '${modelId}': Missing TYPE or NAME configuration`);
+        return;
+      }
+
+      // Build model object with dynamic properties
+      const model = {
+        id: modelId.toLowerCase(),
+        name: modelName,
+        type: modelType,
+        icon: modelIcon,
       };
-    }
 
-    // Ollama Model
-    if (process.env.REACT_APP_OLLAMA_MODEL) {
-      loadedModels.ollama = {
-        id: 'ollama',
-        name: 'Ollama',
-        displayName: process.env.REACT_APP_OLLAMA_MODEL,
-        apiUrl: process.env.REACT_APP_OLLAMA_API_URL || 'http://localhost:11434',
-        model: process.env.REACT_APP_OLLAMA_MODEL,
-        type: 'ollama',
-        icon: '🖥️',
-      };
-    }
+      // Add model-specific configuration based on type
+      const modelConfig = process.env[`${prefix}_MODEL`];
+      
+      if (modelType === 'gemini') {
+        const apiKey = process.env[`${prefix}_API_KEY`];
+        if (!apiKey) {
+          console.warn(`Skipping Gemini model: Missing API_KEY`);
+          return;
+        }
+        model.displayName = modelConfig || 'gemini-2.5-flash';
+        model.apiKey = apiKey;
+        model.model = modelConfig || 'gemini-2.5-flash';
+      } else if (modelType === 'ollama') {
+        if (!modelConfig) {
+          console.warn(`Skipping Ollama model: Missing MODEL configuration`);
+          return;
+        }
+        model.displayName = modelConfig;
+        model.apiUrl = process.env[`${prefix}_API_URL`] || 'http://localhost:11434';
+        model.model = modelConfig;
+      } else if (modelType === 'claude') {
+        const apiKey = process.env[`${prefix}_API_KEY`];
+        if (!apiKey) {
+          console.warn(`Skipping Claude model: Missing API_KEY`);
+          return;
+        }
+        model.displayName = modelConfig || 'claude-3-opus-20240229';
+        model.apiKey = apiKey;
+        model.model = modelConfig || 'claude-3-opus-20240229';
+      } else {
+        console.warn(`Unknown model type '${modelType}' for model '${modelId}'`);
+        return;
+      }
 
-    // Claude Model (example of adding more)
-    if (process.env.REACT_APP_CLAUDE_API_KEY) {
-      loadedModels.claude = {
-        id: 'claude',
-        name: 'Claude',
-        displayName: process.env.REACT_APP_CLAUDE_MODEL || 'claude-3-opus-20240229',
-        apiKey: process.env.REACT_APP_CLAUDE_API_KEY,
-        model: process.env.REACT_APP_CLAUDE_MODEL || 'claude-3-opus-20240229',
-        type: 'claude',
-        icon: '🎭',
-      };
-    }
-
-    // Add more models as needed...
+      loadedModels[modelId.toLowerCase()] = model;
+    });
 
     return loadedModels;
   };
