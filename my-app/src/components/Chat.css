@@ -132,6 +132,31 @@
   height: 100%;
 }
 
+.voice-settings-btn {
+  background: linear-gradient(135deg, rgba(0, 217, 255, 0.1), rgba(0, 217, 255, 0.05));
+  border: 1px solid rgba(0, 217, 255, 0.2);
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+  color: #9ca3af;
+  transition: all 0.3s ease;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.voice-settings-btn:hover {
+  background: rgba(0, 217, 255, 0.1);
+  color: #00d9ff;
+  border-color: rgba(0, 217, 255, 0.4);
+}
+
+.voice-settings-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
 .model-selector {
   display: flex;
   gap: 0.75rem;
@@ -295,6 +320,12 @@
   padding-left: 0.25rem;
 }
 
+.message-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
 .message-model {
   font-size: 0.7rem;
   color: #00d9ff;
@@ -306,6 +337,48 @@
   font-size: 0.7rem;
   color: #6b7280;
   padding-left: 0.25rem;
+}
+
+.speak-button {
+  background: linear-gradient(135deg, rgba(0, 217, 255, 0.15), rgba(0, 217, 255, 0.08));
+  border: 1px solid rgba(0, 217, 255, 0.3);
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #00d9ff;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.speak-button:hover {
+  background: linear-gradient(135deg, rgba(0, 217, 255, 0.25), rgba(0, 217, 255, 0.15));
+  border-color: rgba(0, 217, 255, 0.5);
+  box-shadow: 0 0 12px rgba(0, 217, 255, 0.2);
+}
+
+.speak-button.speaking {
+  background: linear-gradient(135deg, rgba(0, 217, 255, 0.4), rgba(0, 217, 255, 0.25));
+  border-color: rgba(0, 217, 255, 0.6);
+  box-shadow: 0 0 16px rgba(0, 217, 255, 0.4);
+  animation: pulse-speak 1s infinite;
+}
+
+@keyframes pulse-speak {
+  0%, 100% {
+    box-shadow: 0 0 16px rgba(0, 217, 255, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(0, 217, 255, 0.6);
+  }
+}
+
+.speak-button svg {
+  width: 16px;
+  height: 16px;
 }
 
 .user-message {

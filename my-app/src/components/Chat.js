@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import useSpeechRecognition from '../hooks/useSpeechRecognition';
+import useTextToSpeech from '../hooks/useTextToSpeech';
+import VoiceSettings from './VoiceSettings';
 import './Chat.css';
 
 const Chat = () => {
@@ -15,6 +17,13 @@ const Chat = () => {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [speakingMessageId, setSpeakingMessageId] = useState(null);
+  const [showVoiceSettings, setShowVoiceSettings] = useState(false);
+  const [voiceSettings, setVoiceSettings] = useState({
+    rate: 0.95,
+    pitch: 1.0,
+    volume: 0.9,
+  });
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
   const {
@@ -27,6 +36,16 @@ const Chat = () => {
     stopListening,
     resetTranscript,
   } = useSpeechRecognition();
+
+  const {
+    speak,
+    pause,
+    resume,
+    stop: stopSpeech,
+    isSpeaking,
+    isPaused,
+    isSupported: isTextToSpeechSupported,
+  } = useTextToSpeech();
 
   // Auto-load models from environment variables
   const loadModelsFromEnv = () => {
@@ -280,6 +299,24 @@ const Chat = () => {
     }
   };
 
+  const handleSpeakMessage = (messageId, messageText) => {
+    if (speakingMessageId === messageId) {
+      // If this message is speaking, stop it
+      stopSpeech();
+      setSpeakingMessageId(null);
+    } else {
+      // Stop any previous speech and speak this message
+      stopSpeech();
+      setSpeakingMessageId(messageId);
+      speak(messageText, {
+        rate: voiceSettings.rate,
+        pitch: voiceSettings.pitch,
+        volume: voiceSettings.volume,
+        lang: 'en-US',
+      });
+    }
+  };
+
   return (
     <>
       {/* Text Button to Open Chat */}
@@ -331,6 +368,18 @@ const Chat = () => {
                   </div>
                 )}
                 <button
+                  className="voice-settings-btn"
+                  onClick={() => setShowVoiceSettings(true)}
+                  title="Voice settings"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="1"></circle>
+                    <circle cx="19" cy="12" r="1"></circle>
+                    <circle cx="5" cy="12" r="1"></circle>
+                    <path d="M7.5 4.5a4.5 4.5 0 0 1 9 0M7.5 19.5a4.5 4.5 0 0 0 9 0"></path>
+                  </svg>
+                </button>
+                <button
                   className="close-chat"
                   onClick={() => setIsOpen(false)}
                   title="Close chat"
@@ -381,10 +430,25 @@ const Chat = () => {
                       <>
                         <div className="message-text">{message.text}</div>
                         <div className="message-footer">
-                          {message.modelName && (
-                            <span className="message-model">{message.modelName} • {message.modelDisplayName}</span>
+                          <div className="message-info">
+                            {message.modelName && (
+                              <span className="message-model">{message.modelName} • {message.modelDisplayName}</span>
+                            )}
+                            <div className="message-time">{getCurrentTime()}</div>
+                          </div>
+                          {!message.isUser && isTextToSpeechSupported && (
+                            <button
+                              className={`speak-button ${speakingMessageId === message.id ? 'speaking' : ''}`}
+                              onClick={() => handleSpeakMessage(message.id, message.text)}
+                              title={speakingMessageId === message.id ? 'Stop speaking' : 'Read aloud'}
+                            >
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                                <path d="M15.54 8.46a6.5 6.5 0 0 1 0 9.07"></path>
+                                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                              </svg>
+                            </button>
                           )}
-                          <div className="message-time">{getCurrentTime()}</div>
                         </div>
                       </>
                     )}
@@ -449,6 +513,13 @@ const Chat = () => {
           </div>
         </div>
       )}
+      <VoiceSettings 
+        isOpen={showVoiceSettings}
+        onClose={() => setShowVoiceSettings(false)}
+        onSettingsChange={setVoiceSettings}
+        speak={speak}
+        availableVoices={[]}
+      />
     </>
   );
 };
