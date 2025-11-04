@@ -45,6 +45,10 @@ const Chat = () => {
     isSpeaking,
     isPaused,
     isSupported: isTextToSpeechSupported,
+    availableVoices,
+    selectedVoiceIndex,
+    changeVoice,
+    getVoiceInfo,
   } = useTextToSpeech();
 
   // Auto-load models from environment variables - fully dynamic
@@ -536,7 +540,9 @@ const Chat = () => {
         onClose={() => setShowVoiceSettings(false)}
         onSettingsChange={setVoiceSettings}
         speak={speak}
-        availableVoices={[]}
+        availableVoices={availableVoices}
+        changeVoice={changeVoice}
+        selectedVoiceIndex={selectedVoiceIndex}
       />
     </>
   );

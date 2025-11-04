@@ -6,6 +6,7 @@ const useTextToSpeech = () => {
   const [isSupported, setIsSupported] = useState(false);
   const [availableVoices, setAvailableVoices] = useState([]);
   const [selectedVoiceIndex, setSelectedVoiceIndex] = useState(0);
+  const [voiceInfo, setVoiceInfo] = useState(null);
   const synthRef = useRef(null);
   const utteranceRef = useRef(null);
 
@@ -25,6 +26,19 @@ const useTextToSpeech = () => {
     const loadVoices = () => {
       const voices = synth.getVoices();
       setAvailableVoices(voices);
+      
+      // Find best default voice (prefer English voices with natural quality)
+      if (voices.length > 0) {
+        const bestVoice = findBestDefaultVoice(voices);
+        if (bestVoice) {
+          setSelectedVoiceIndex(bestVoice.index);
+          setVoiceInfo({
+            name: bestVoice.voice.name,
+            lang: bestVoice.voice.lang,
+            local: bestVoice.voice.localService,
+          });
+        }
+      }
     };
 
     loadVoices();
@@ -47,16 +61,17 @@ const useTextToSpeech = () => {
 
     const utterance = new SpeechSynthesisUtterance(text);
     
-    // Configure utterance with human-like defaults
-    utterance.rate = options.rate || 0.95;        // Slightly slower for natural speech
-    utterance.pitch = options.pitch || 1.0;       // Natural pitch
-    utterance.volume = options.volume || 0.9;     // Slightly lower volume
+    // Configure utterance with optimized defaults for natural speech
+    utterance.rate = options.rate !== undefined ? options.rate : 0.95;        // Slightly slower = more natural
+    utterance.pitch = options.pitch !== undefined ? options.pitch : 1.0;      // Natural pitch
+    utterance.volume = options.volume !== undefined ? options.volume : 0.9;   // Comfortable level
     utterance.lang = options.lang || 'en-US';
 
-    // Select voice
+    // Select voice with validation
     if (availableVoices.length > 0) {
       const voiceIndex = options.voiceIndex !== undefined ? options.voiceIndex : selectedVoiceIndex;
-      utterance.voice = availableVoices[Math.min(voiceIndex, availableVoices.length - 1)];
+      const validIndex = Math.min(Math.max(voiceIndex, 0), availableVoices.length - 1);
+      utterance.voice = availableVoices[validIndex];
     }
 
     // Set up event handlers
@@ -79,13 +94,19 @@ const useTextToSpeech = () => {
     };
 
     utterance.onerror = (event) => {
-      console.error('Speech synthesis error:', event);
+      console.error('Speech synthesis error:', event.error);
       setIsSpeaking(false);
       setIsPaused(false);
     };
 
     utteranceRef.current = utterance;
-    synthRef.current.speak(utterance);
+    
+    // Use setTimeout to ensure proper browser handling
+    setTimeout(() => {
+      if (synthRef.current) {
+        synthRef.current.speak(utterance);
+      }
+    }, 0);
   }, [availableVoices, selectedVoiceIndex]);
 
   const pause = useCallback(() => {
@@ -132,6 +153,46 @@ const useTextToSpeech = () => {
     });
   }, [availableVoices]);
 
+  // Find best default voice based on language and quality
+  const findBestDefaultVoice = useCallback((voices) => {
+    if (!voices || voices.length === 0) return null;
+
+    // Priority list for best voices
+    const preferences = [
+      // English US voices (most common and natural)
+      (v) => v.lang.startsWith('en-US') && v.name.includes('Google'),
+      (v) => v.lang.startsWith('en-US') && v.localService,
+      (v) => v.lang.startsWith('en-US'),
+      // Other English variants
+      (v) => v.lang.startsWith('en-') && v.localService,
+      (v) => v.lang.startsWith('en-'),
+    ];
+
+    for (const predicate of preferences) {
+      const index = voices.findIndex(predicate);
+      if (index !== -1) {
+        return { index, voice: voices[index] };
+      }
+    }
+
+    // Fallback to first voice
+    return { index: 0, voice: voices[0] };
+  }, []);
+
+  // Get voice info for display
+  const getVoiceInfo = useCallback(() => {
+    if (availableVoices.length > 0 && selectedVoiceIndex >= 0 && selectedVoiceIndex < availableVoices.length) {
+      const voice = availableVoices[selectedVoiceIndex];
+      return {
+        name: voice.name,
+        lang: voice.lang,
+        local: voice.localService,
+        default: voice.default,
+      };
+    }
+    return null;
+  }, [availableVoices, selectedVoiceIndex]);
+
   return {
     speak,
     pause,
@@ -145,6 +206,8 @@ const useTextToSpeech = () => {
     selectedVoiceIndex,
     changeVoice,
     findVoicesByGender,
+    getVoiceInfo,
+    voiceInfo,
   };
 };
 

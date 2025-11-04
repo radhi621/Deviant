@@ -114,6 +114,58 @@
   font-weight: 600;
 }
 
+/* Voice Select Dropdown */
+.voice-select {
+  width: 100%;
+  padding: 0.75rem;
+  background: rgba(0, 217, 255, 0.05);
+  border: 2px solid rgba(0, 217, 255, 0.3);
+  border-radius: 8px;
+  color: #e5e7eb;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.voice-select:hover {
+  border-color: rgba(0, 217, 255, 0.5);
+  background: rgba(0, 217, 255, 0.08);
+}
+
+.voice-select:focus {
+  outline: none;
+  border-color: #00d9ff;
+  background: rgba(0, 217, 255, 0.1);
+  box-shadow: 0 0 12px rgba(0, 217, 255, 0.2);
+}
+
+.voice-select option {
+  background: #0a0a0f;
+  color: #e5e7eb;
+  padding: 0.5rem;
+}
+
+.voice-select option:hover {
+  background: rgba(0, 217, 255, 0.2);
+  color: #00d9ff;
+}
+
+.voice-name {
+  font-size: 0.85rem;
+  color: #6b7280;
+  font-weight: 400;
+}
+
+.voice-info {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
+  padding: 0.5rem;
+  background: rgba(0, 217, 255, 0.05);
+  border-radius: 4px;
+  border-left: 2px solid rgba(0, 217, 255, 0.3);
+}
+
 /* Sliders */
 .slider {
   width: 100%;
