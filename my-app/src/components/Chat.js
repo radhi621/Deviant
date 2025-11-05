@@ -97,6 +97,14 @@ const Chat = () => {
         model.displayName = modelConfig;
         model.apiUrl = process.env[`${prefix}_API_URL`] || 'http://localhost:11434';
         model.model = modelConfig;
+      } else if (modelType === 'lmstudio') {
+        if (!modelConfig) {
+          console.warn(`Skipping LM Studio model: Missing MODEL configuration`);
+          return;
+        }
+        model.displayName = modelConfig;
+        model.apiUrl = process.env[`${prefix}_API_URL`] || 'http://localhost:1234';
+        model.model = modelConfig;
       } else if (modelType === 'claude') {
         const apiKey = process.env[`${prefix}_API_KEY`];
         if (!apiKey) {
@@ -166,6 +174,8 @@ const Chat = () => {
       return getOllamaResponse(userMessage);
     } else if (activeModel.type === 'gemini') {
       return getGeminiResponse(userMessage);
+    } else if (activeModel.type === 'lmstudio') {
+      return getLMStudioResponse(userMessage);
     } else {
       throw new Error(`Unknown model type: ${activeModel.type}`);
     }
@@ -252,6 +262,47 @@ const Chat = () => {
     } catch (err) {
       if (err instanceof TypeError) {
         throw new Error(`Cannot connect to Ollama on ${activeModel.apiUrl}. Make sure Ollama is running.`);
+      }
+      throw err;
+    }
+  };
+
+  const getLMStudioResponse = async (userMessage) => {
+    try {
+      const response = await fetch(`${activeModel.apiUrl}/v1/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: activeModel.model,
+          messages: [
+            {
+              role: 'user',
+              content: userMessage,
+            },
+          ],
+          temperature: 0.7,
+          top_p: 0.95,
+          max_tokens: 1024,
+          stream: false,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`LM Studio API Error: ${response.status} - Make sure LM Studio is running on ${activeModel.apiUrl}`);
+      }
+
+      const data = await response.json();
+
+      if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+        throw new Error('No response from LM Studio model');
+      }
+
+      return data.choices[0].message.content.trim();
+    } catch (err) {
+      if (err instanceof TypeError) {
+        throw new Error(`Cannot connect to LM Studio on ${activeModel.apiUrl}. Make sure LM Studio is running.`);
       }
       throw err;
     }
