@@ -26,6 +26,9 @@ const VoiceSettings = ({ onSettingsChange, isOpen, onClose, speak, availableVoic
     if (changeVoice) {
       changeVoice(voiceIndex);
     }
+    // Pass the voice selection back to parent component so it gets saved
+    const newSettings = { ...voiceSettings, selectedVoiceIndex: voiceIndex };
+    onSettingsChange(newSettings);
   };
 
   const handlePreview = () => {

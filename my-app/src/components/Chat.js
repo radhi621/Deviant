@@ -1,10 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
 import useSpeechRecognition from '../hooks/useSpeechRecognition';
 import useTextToSpeech from '../hooks/useTextToSpeech';
+import useChatStorage from '../hooks/useChatStorage';
+import useVoiceStorage from '../hooks/useVoiceStorage';
 import VoiceSettings from './VoiceSettings';
 import './Chat.css';
 
 const Chat = () => {
+  const { saveMessages, loadMessages } = useChatStorage();
+  const { saveVoiceSettings, loadVoiceSettings, updateVoiceSetting } = useVoiceStorage();
+  
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     {
@@ -19,10 +24,15 @@ const Chat = () => {
   const [error, setError] = useState(null);
   const [speakingMessageId, setSpeakingMessageId] = useState(null);
   const [showVoiceSettings, setShowVoiceSettings] = useState(false);
-  const [voiceSettings, setVoiceSettings] = useState({
-    rate: 0.95,
-    pitch: 1.0,
-    volume: 0.9,
+  const [voiceSettings, setVoiceSettings] = useState(() => {
+    // Load voice settings from storage on mount, or use defaults
+    const savedSettings = loadVoiceSettings();
+    return savedSettings || {
+      rate: 0.95,
+      pitch: 1.0,
+      volume: 0.9,
+      selectedVoiceIndex: 0,
+    };
   });
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
@@ -154,6 +164,41 @@ const Chat = () => {
       resetTranscript();
     }
   }, [transcript, resetTranscript]);
+
+  // Load chat history from local storage on component mount
+  useEffect(() => {
+    const savedMessages = loadMessages('current');
+    if (savedMessages && savedMessages.length > 0) {
+      setMessages(savedMessages);
+    }
+  }, [loadMessages]);
+
+  // Auto-save chat history whenever messages change
+  useEffect(() => {
+    if (messages.length > 1) {
+      saveMessages(messages, 'current');
+    }
+  }, [messages, saveMessages]);
+
+  // Auto-save voice settings whenever they change
+  useEffect(() => {
+    saveVoiceSettings({
+      rate: voiceSettings.rate,
+      pitch: voiceSettings.pitch,
+      volume: voiceSettings.volume,
+      selectedVoiceIndex: voiceSettings.selectedVoiceIndex,
+    });
+  }, [voiceSettings, saveVoiceSettings]);
+
+  // Apply saved voice index when component mounts or when available voices change
+  useEffect(() => {
+    if (voiceSettings.selectedVoiceIndex !== undefined && changeVoice && availableVoices.length > 0) {
+      // Only call if the index is different from current selectedVoiceIndex
+      if (voiceSettings.selectedVoiceIndex !== selectedVoiceIndex) {
+        changeVoice(voiceSettings.selectedVoiceIndex);
+      }
+    }
+  }, [availableVoices, changeVoice]);
 
   const getCurrentTime = () => {
     const now = new Date();

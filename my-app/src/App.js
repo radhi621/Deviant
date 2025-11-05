@@ -21,7 +21,7 @@ function App() {
       {/* Main Content */}
       <main className="container">
         <div className="ai-section">
-          <h1>ASSISTANT AI</h1>
+          <h1>Deviant</h1>
           <div className="ai-icon-container">
             <div className="glow-ring"></div>
             <div className="brain-container">
