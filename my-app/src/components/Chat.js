@@ -7,7 +7,7 @@ import VoiceSettings from './VoiceSettings';
 import './Chat.css';
 
 const Chat = () => {
-  const { saveMessages, loadMessages } = useChatStorage();
+  const { saveMessages, loadMessages, clearAllConversations } = useChatStorage();
   const { saveVoiceSettings, loadVoiceSettings, updateVoiceSetting } = useVoiceStorage();
   
   const [isOpen, setIsOpen] = useState(false);
@@ -210,6 +210,32 @@ const Chat = () => {
     return `${displayHours}:${displayMinutes} ${ampm}`;
   };
 
+  const buildConversationContext = (maxMessages = 10) => {
+    // Get last N messages for context (excluding typing indicators and errors)
+    // IMPORTANT: This includes messages from ALL models, not just current model
+    // This allows any model to see the full conversation history
+    const relevantMessages = messages
+      .filter(msg => !msg.isTyping && !msg.isError)
+      .slice(-maxMessages);
+    
+    return relevantMessages;
+  };
+
+  const formatChatHistoryForContext = (contextMessages) => {
+    // Format previous messages as context string for models that don't support message arrays
+    // Includes all messages regardless of which model generated them
+    return contextMessages
+      .map(msg => {
+        const sender = msg.isUser ? 'User' : 'Assistant';
+        // Include model info if available (helps when switching between models)
+        const modelInfo = !msg.isUser && msg.modelName 
+          ? ` (${msg.modelName})` 
+          : '';
+        return `${sender}${modelInfo}: ${msg.text}`;
+      })
+      .join('\n\n');
+  };
+
   const getAIResponse = async (userMessage) => {
     if (!activeModel) {
       throw new Error('No AI model configured. Please add model configuration to your .env file.');
@@ -233,16 +259,35 @@ const Chat = () => {
 
     const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${activeModel.model}:generateContent?key=${activeModel.apiKey}`;
 
-    const requestBody = {
-      contents: [
+    // Build conversation history for context
+    // This includes messages from ALL models in the conversation, not just Gemini
+    const contextMessages = buildConversationContext(10);
+    const contents = [];
+
+    // Add previous messages as context (from all models and user)
+    for (const msg of contextMessages) {
+      contents.push({
+        role: msg.isUser ? 'user' : 'model',
+        parts: [
+          {
+            text: msg.text,
+          },
+        ],
+      });
+    }
+
+    // Add current user message
+    contents.push({
+      role: 'user',
+      parts: [
         {
-          parts: [
-            {
-              text: userMessage,
-            },
-          ],
+          text: userMessage,
         },
       ],
+    });
+
+    const requestBody = {
+      contents: contents,
       generationConfig: {
         temperature: 0.9,
         topK: 40,
@@ -281,6 +326,16 @@ const Chat = () => {
 
   const getOllamaResponse = async (userMessage) => {
     try {
+      // Build conversation context
+      // This includes messages from ALL models in the conversation, not just Ollama
+      const contextMessages = buildConversationContext(10);
+      const chatHistory = formatChatHistoryForContext(contextMessages);
+      
+      // Combine chat history with current message
+      const fullPrompt = chatHistory 
+        ? `${chatHistory}\n\nUser: ${userMessage}`
+        : `${userMessage}`;
+
       const response = await fetch(`${activeModel.apiUrl}/api/generate`, {
         method: 'POST',
         headers: {
@@ -288,7 +343,7 @@ const Chat = () => {
         },
         body: JSON.stringify({
           model: activeModel.model,
-          prompt: userMessage,
+          prompt: fullPrompt,
           stream: false,
         }),
       });
@@ -314,6 +369,22 @@ const Chat = () => {
 
   const getLMStudioResponse = async (userMessage) => {
     try {
+      // Build conversation history for context
+      // This includes messages from ALL models in the conversation, not just LM Studio
+      const contextMessages = buildConversationContext(10);
+      
+      // Build messages array with history from all models
+      const messagesArray = [
+        ...contextMessages.map(msg => ({
+          role: msg.isUser ? 'user' : 'assistant',
+          content: msg.text,
+        })),
+        {
+          role: 'user',
+          content: userMessage,
+        },
+      ];
+
       const response = await fetch(`${activeModel.apiUrl}/v1/chat/completions`, {
         method: 'POST',
         headers: {
@@ -321,12 +392,7 @@ const Chat = () => {
         },
         body: JSON.stringify({
           model: activeModel.model,
-          messages: [
-            {
-              role: 'user',
-              content: userMessage,
-            },
-          ],
+          messages: messagesArray,
           temperature: 0.7,
           top_p: 0.95,
           max_tokens: 1024,
@@ -353,6 +419,25 @@ const Chat = () => {
     }
   };
 
+  const handleClearChat = () => {
+    if (window.confirm('Are you sure you want to clear all messages? This cannot be undone.')) {
+      // Clear from local storage
+      clearAllConversations();
+      
+      // Reset UI state
+      setMessages([
+        {
+          id: 1,
+          text: "Hello! I'm your AI Assistant. How can I help you today?",
+          isUser: false,
+          timestamp: new Date(),
+        },
+      ]);
+      setInputValue('');
+      setError(null);
+    }
+  };
+
   const handleSendMessage = async () => {
     const text = inputValue.trim();
     if (!text) return;
@@ -366,6 +451,7 @@ const Chat = () => {
     };
     setMessages((prev) => [...prev, userMessage]);
     setInputValue('');
+    
     setIsLoading(true);
     setError(null);
 
@@ -486,6 +572,19 @@ const Chat = () => {
                   </div>
                 )}
                 <button
+                  className="clear-chat-btn"
+                  onClick={handleClearChat}
+                  title="Clear all messages"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M3 6h18"></path>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                  </svg>
+                </button>
+                <button
                   className="voice-settings-btn"
                   onClick={() => setShowVoiceSettings(true)}
                   title="Voice settings"
@@ -587,6 +686,11 @@ const Chat = () => {
               {speechError && (
                 <div className="speech-error">
                   <span>Error: {speechError}</span>
+                </div>
+              )}
+              {error && (
+                <div className="chat-error">
+                  <span>⚠️ {error}</span>
                 </div>
               )}
               <div className="chat-input-wrapper">
