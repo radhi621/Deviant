@@ -1,0 +1,42 @@
+/* Message Content Parsing Styles */
+.message-content-parsed {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Override default message-text when used with parsed content */
+.message-content-parsed .message-text {
+  background: rgba(0, 217, 255, 0.08);
+  border: 1px solid rgba(0, 217, 255, 0.2);
+  padding: 1rem 1.25rem;
+  border-radius: 12px;
+  color: #e5e7eb;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  word-wrap: break-word;
+  margin: 0;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.user-message .message-content-parsed .message-text {
+  background: rgba(139, 92, 246, 0.08);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+/* Ensure code blocks have proper sizing */
+.message-content-parsed .code-block-wrapper {
+  margin: 0;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+

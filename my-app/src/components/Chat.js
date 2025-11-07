@@ -4,7 +4,9 @@ import useTextToSpeech from '../hooks/useTextToSpeech';
 import useChatStorage from '../hooks/useChatStorage';
 import useVoiceStorage from '../hooks/useVoiceStorage';
 import VoiceSettings from './VoiceSettings';
+import MessageContent from './MessageContent';
 import './Chat.css';
+import './MessageContent.css';
 
 const Chat = () => {
   const { saveMessages, loadMessages, clearAllConversations } = useChatStorage();
@@ -645,7 +647,7 @@ const Chat = () => {
                       </div>
                     ) : (
                       <>
-                        <div className="message-text">{message.text}</div>
+                        <MessageContent text={message.text} />
                         <div className="message-footer">
                           <div className="message-info">
                             {message.modelName && (
